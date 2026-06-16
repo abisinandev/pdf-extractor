@@ -4,8 +4,10 @@ import { PdfViewer } from "./components/PdfViewer";
 
 const App: React.FC = () => {
   const [activeFile, setActiveFile] = useState<File | null>(null);
+  const [activeFileId, setActiveFileId] = useState<string | null>(null);
 
-  const handleUploadSuccess = (_fileId: string, file: File) => {
+  const handleUploadSuccess = (fileId: string, file: File) => {
+    setActiveFileId(fileId);
     setActiveFile(file);
   };
 
@@ -48,7 +50,7 @@ const App: React.FC = () => {
                 {activeFile.name}
               </h2>
               <button 
-                onClick={() => setActiveFile(null)}
+                onClick={() => { setActiveFile(null); setActiveFileId(null); }}
                 className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition-colors shrink-0"
               >
                 Upload Another
@@ -56,7 +58,7 @@ const App: React.FC = () => {
             </div>
             
             <div className="flex-1 w-full bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden h-full">
-              <PdfViewer file={activeFile} />
+              <PdfViewer file={activeFile} fileId={activeFileId} />
             </div>
           </div>
         )}

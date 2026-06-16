@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { ChevronLeft, ChevronRight, Loader2, Maximize2, Minimize2, CheckSquare, Square, Download } from 'lucide-react';
-import { PDFDocument } from 'pdf-lib';
+import { extract } from '../services/api.service';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
@@ -9,9 +9,10 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 
 interface PdfViewerProps {
   file: File | null;
+  fileId?: string | null;
 }
 
-export const PdfViewer: React.FC<PdfViewerProps> = ({ file }) => {
+export const PdfViewer: React.FC<PdfViewerProps> = ({ file, fileId }) => {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [scale, setScale] = useState<number>(1.0);
@@ -66,27 +67,16 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ file }) => {
   const isCurrentPageSelected = selectedPages.has(pageNumber);
 
   const handleExtract = async () => {
-    if (!file || selectedPages.size === 0) return;
+    if (!file || !fileId || selectedPages.size === 0) return;
 
     try {
       setIsExtracting(true);
       setExtractSuccess(false);
 
-      const arrayBuffer = await file.arrayBuffer();
+      const pagesToExtract = Array.from(selectedPages).sort((a, b) => a - b);
+      const pdfBlob = await extract(fileId, pagesToExtract);
 
-      const originalPdf = await PDFDocument.load(arrayBuffer);
-
-      const newPdf = await PDFDocument.create();
-
-      const pagesToCopy = Array.from(selectedPages).sort((a, b) => a - b).map(p => p - 1);
-      const copiedPages = await newPdf.copyPages(originalPdf, pagesToCopy);
-
-      copiedPages.forEach(page => newPdf.addPage(page));
-
-      const pdfBytes = await newPdf.save();
-
-      const blob = new Blob([pdfBytes as unknown as BlobPart], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(pdfBlob);
       
       setExtractedPdfUrl(url);
       setExtractSuccess(true);

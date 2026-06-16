@@ -30,6 +30,7 @@ export class PdfController implements IPdfController {
         try {
             const { fileId } = req.params;
             console.log("Fetching PDF file ID: ", fileId);
+            
             const result = await this.pdfService.extractText(fileId as string);
             if (!result) {
                 throw new AppError(
@@ -48,22 +49,15 @@ export class PdfController implements IPdfController {
         }
     };
 
-    async extractPdf(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+    extractPdf = async (req: Request, res: Response, next: NextFunction): Promise<Response | void> => {
         try {
             const { id: fileName } = req.params;
             const { pages } = req.body;
 
             const result = await this.extractPdfService.extract(fileName as string, pages);
 
-            res.setHeader(
-                "Content-Type",
-                "application/pdf"
-            )
-
-            res.setHeader(
-                "Content-Disposition",
-                "attachment; filename=extracted.pdf"
-            )
+            res.type("pdf");
+            res.attachment("extracted.pdf");
 
             return res.send(result);
 
@@ -71,4 +65,4 @@ export class PdfController implements IPdfController {
             next(error);
         }
     }
-}
+} 

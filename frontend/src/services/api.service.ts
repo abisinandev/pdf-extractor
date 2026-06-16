@@ -42,9 +42,9 @@ export const getPdfText = (fileId: string) => {
 };
 
 
-export const extract = async (fileName: string, pages: []) => {
+export const extract = async (fileName: string, pages: number[]) => {
   const response = await apiClient.post(
-    `/pdfs/${fileName}/extract`,
+    `/pdf/${fileName}/extract`,
     { pages },
     { responseType: "blob" }
   );
