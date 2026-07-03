@@ -16,10 +16,12 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ file, fileId }) => {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [scale, setScale] = useState<number>(1.0);
-  const [selectedPages, setSelectedPages] = useState<Set<number>>(new Set());
+  // const [selectedPages, setSelectedPages] = useState<Set<number>>(new Set());
+  const [selectedPages, setSelectedPages] = useState<number[]>([]);
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractedPdfUrl, setExtractedPdfUrl] = useState<string | null>(null);
   const [extractSuccess, setExtractSuccess] = useState<boolean>(false);
+  const [pageInput, setPageInput] = useState("");
 
   if (!file) {
     return (
@@ -31,10 +33,23 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ file, fileId }) => {
     );
   }
 
+  const goToPage = () => {
+    const page = Number(pageInput);
+
+    if (Number.isNaN(page)) return;
+
+    if (page < 1 || page > numPages) {
+      alert(`Enter a page between 1 and ${numPages}`);
+      return;
+    }
+
+    setPageNumber(page);
+  };
+
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
     setPageNumber(1);
-    setSelectedPages(new Set());
+    setSelectedPages([]);
   };
 
   const changePage = (offset: number) => {
@@ -48,36 +63,35 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ file, fileId }) => {
 
   const togglePageSelection = () => {
     setExtractSuccess(false);
+
     if (extractedPdfUrl) {
       URL.revokeObjectURL(extractedPdfUrl);
       setExtractedPdfUrl(null);
     }
-    
-    setSelectedPages(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(pageNumber)) {
-        newSet.delete(pageNumber);
-      } else {
-        newSet.add(pageNumber);
+
+    setSelectedPages((prev) => {
+      if (prev.includes(pageNumber)) {
+        return prev.filter((page) => page !== pageNumber);
       }
-      return newSet;
+
+      return [...prev, pageNumber];
     });
   };
 
-  const isCurrentPageSelected = selectedPages.has(pageNumber);
+  const isCurrentPageSelected = selectedPages.includes(pageNumber);
 
   const handleExtract = async () => {
-    if (!file || !fileId || selectedPages.size === 0) return;
+    if (!file || !fileId || selectedPages.length === 0) return;
 
     try {
       setIsExtracting(true);
       setExtractSuccess(false);
 
-      const pagesToExtract = Array.from(selectedPages).sort((a, b) => a - b);
+      const pagesToExtract = [...selectedPages];
       const pdfBlob = await extract(fileId, pagesToExtract);
 
       const url = URL.createObjectURL(pdfBlob);
-      
+
       setExtractedPdfUrl(url);
       setExtractSuccess(true);
 
@@ -114,9 +128,32 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ file, fileId }) => {
               <ChevronLeft className="w-4 h-4 text-slate-700" />
             </button>
 
-            <span className="text-xs font-semibold text-slate-700 min-w-[70px] text-center">
-              {pageNumber} / {numPages || '-'}
-            </span>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                max={numPages}
+                value={pageInput}
+                onChange={(e) => setPageInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    goToPage();
+                  }
+                }}
+                className="w-16 text-center border rounded px-2 py-1 text-sm"
+              />
+
+              <span className="text-xs font-semibold">
+                {pageNumber} / {numPages || "-"}
+              </span>
+
+              <button
+                onClick={goToPage}
+                className="px-2 py-1 rounded bg-red-600 text-white text-xs"
+              >
+                Go
+              </button>
+            </div>
 
             <button
               onClick={nextPage}
@@ -164,7 +201,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ file, fileId }) => {
             </button>
           </div>
 
-          {selectedPages.size > 0 && !extractSuccess && (
+          {selectedPages.length > 0 && !extractSuccess && (
             <button
               onClick={handleExtract}
               disabled={isExtracting}
@@ -175,7 +212,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ file, fileId }) => {
               ) : (
                 <CheckSquare className="w-4 h-4" />
               )}
-              Extract {selectedPages.size} {selectedPages.size === 1 ? 'Page' : 'Pages'}
+              Extract {selectedPages.length} {selectedPages.length === 1 ? 'Page' : 'Pages'}
             </button>
           )}
 

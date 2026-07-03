@@ -16,7 +16,9 @@ const storage = multer.diskStorage({
 export const upload = multer({
     storage,
     fileFilter: (_req, file, callback) => {
-        const isPdf = path.extname(file.originalname) === '.pdf';
+        const isPdf =
+            (path.extname(file.originalname).toLowerCase() === '.pdf') && file.mimetype === "application/pdf";
+        
         if (!isPdf) {
             return callback(new AppError(
                 HttpStatusCode.BadRequest,

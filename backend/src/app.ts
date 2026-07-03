@@ -5,13 +5,15 @@ import pdfRoutes from "./routes/pdf.routes";
 import { AppError } from "./configs/app.error";
 import { MESSAGES } from "./configs/messages.constants";
 import { COMMON_ROUTES } from "./configs/router-constants";
+import morgan from 'morgan';
 
 const app = express();
 
 app.use(cors({ origin: "*" }));
 app.use(express.json());
+app.use(morgan("dev"))
 
-app.use(pdfRoutes);
+app.use("/api", pdfRoutes);
 
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     console.log("Error middleware: ", err);

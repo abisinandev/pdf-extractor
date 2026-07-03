@@ -42,6 +42,8 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onUploadSuccess }) => {
   };
 
   const validateAndUpload = (file: File) => {
+    console.log("validateAndUpload: ", file);
+    
     if (file.type !== "application/pdf" && !file.name.endsWith(".pdf")) {
       setError("Only PDF files are allowed.");
       return;

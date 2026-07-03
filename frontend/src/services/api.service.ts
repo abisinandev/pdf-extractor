@@ -1,4 +1,5 @@
 import axios from "axios";
+import { API } from "../constants/constant.routes";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
@@ -26,7 +27,7 @@ export const uploadPdf = (
   const formData = new FormData();
   formData.append("pdf", file);
 
-  return apiClient.post<UploadResponse>("/upload", formData, {
+  return apiClient.post<UploadResponse>(API.upload, formData, {
     headers: { "Content-Type": "multipart/form-data" },
     onUploadProgress: (event) => {
       if (onProgress && event.total) {
@@ -38,13 +39,13 @@ export const uploadPdf = (
 };
 
 export const getPdfText = (fileId: string) => {
-  return apiClient.get<GetPdfResponse>(`/pdf/${fileId}`);
+  return apiClient.get<GetPdfResponse>(`${API.pdf}/${fileId}`);
 };
 
 
 export const extract = async (fileName: string, pages: number[]) => {
   const response = await apiClient.post(
-    `/pdf/${fileName}/extract`,
+    `${API.pdf}/${fileName}${API.extract}`,
     { pages },
     { responseType: "blob" }
   );

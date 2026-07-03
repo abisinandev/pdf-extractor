@@ -5,21 +5,24 @@ import { MESSAGES } from "../../configs/messages.constants";
 import { IPdfController } from "../interfaces/pdf-controller.interface";
 import { IPdfService } from "../../services/interfaces/pdf-service.interface";
 import { IExtractPdfService } from "../../services/interfaces/extract-pdf-service.interface";
+import { responseHeader } from "../../utils/response-header.utils";
 
 export class PdfController implements IPdfController {
 
     constructor(
-        private readonly pdfService: IPdfService,
-        private readonly extractPdfService: IExtractPdfService,
+        private readonly _pdfService: IPdfService,
+        private readonly _extractPdfService: IExtractPdfService,
     ) { }
 
     uploadPdf = async (req: Request, res: Response, next: NextFunction): Promise<Response | void> => {
         try {
             const fileId = req.file?.filename;
+            console.log(req.file, fileId);
+
             return res.status(HttpStatusCode.Accepted).json({
                 success: true,
                 message: MESSAGES.PDF.UPLOADED,
-                fileId: fileId,
+                fileId,
             });
         } catch (error) {
             next(error);
@@ -30,8 +33,8 @@ export class PdfController implements IPdfController {
         try {
             const { fileId } = req.params;
             console.log("Fetching PDF file ID: ", fileId);
-            
-            const result = await this.pdfService.extractText(fileId as string);
+
+            const result = await this._pdfService.extractText(fileId as string);
             if (!result) {
                 throw new AppError(
                     HttpStatusCode.NotFound,
@@ -54,10 +57,10 @@ export class PdfController implements IPdfController {
             const { id: fileName } = req.params;
             const { pages } = req.body;
 
-            const result = await this.extractPdfService.extract(fileName as string, pages);
+            const result = await this._extractPdfService.extract(fileName as string, pages);
 
-            res.type("pdf");
-            res.attachment("extracted.pdf");
+            //set content types
+            responseHeader(res);
 
             return res.send(result);
 
