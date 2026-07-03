@@ -3,11 +3,11 @@ import app from "./app";
 import { ENV } from "./configs/env.constants";
 import { MESSAGES } from "./configs/messages.constants";
 import { UploadCleanupService } from "./services/cleanup-file.service";
-import { cleaupFilesCron } from "./utils/cleanup-scheduler";
+import { cleanupFilesCron } from "./utils/cleanup-scheduler";
 
 (() => {
     const cleanupSerice = new UploadCleanupService();
-    cleaupFilesCron(cleanupSerice);
+    cleanupFilesCron(cleanupSerice);
 })();
 
 app.listen(ENV.PORT, () => {
