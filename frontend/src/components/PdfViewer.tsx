@@ -23,7 +23,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ file, fileId }) => {
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractedPdfUrl, setExtractedPdfUrl] = useState<string | null>(null);
   const [extractSuccess, setExtractSuccess] = useState<boolean>(false);
-  const [extractedPdfBlob, setExtractedPdfBlob] = useState<Blob | null>(null);
+  const [_extractedPdfBlob, setExtractedPdfBlob] = useState<Blob | null>(null);
   const [viewingExtracted, setViewingExtracted] = useState<boolean>(false);
   const [outputFilename, setOutputFilename] = useState<string>(
     file ? file.name.replace(/\.pdf$/i, '') : 'extracted'
