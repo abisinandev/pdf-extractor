@@ -1,4 +1,4 @@
-# PDF Extractor API
+# DocuFy (Document-Extractor Tool)
 
 A backend application for uploading, processing, and extracting pages from PDF documents.
 
