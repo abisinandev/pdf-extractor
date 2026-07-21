@@ -11,13 +11,22 @@ export const apiClient = axios.create({
 export interface UploadResponse {
   success: boolean;
   message: string;
-  fileId?: string;
+  data?: {
+    id: string;
+    [key: string]: any;
+  };
 }
 
 export interface GetPdfResponse {
   success: boolean;
   message: string;
-  data?: string;
+  data?: {
+    id: string,
+    originalName: string,
+    mimeType: string,
+    storagePath: string,
+    extractedText: string
+  };
 }
 
 export const uploadPdf = (
@@ -25,7 +34,7 @@ export const uploadPdf = (
   onProgress?: (percent: number) => void
 ) => {
   const formData = new FormData();
-  formData.append("pdf", file);
+  formData.append("document", file);
 
   return apiClient.post<UploadResponse>(API.upload, formData, {
     headers: { "Content-Type": "multipart/form-data" },
@@ -43,10 +52,10 @@ export const getPdfText = (fileId: string) => {
 };
 
 
-export const extract = async (fileName: string, pages: number[]) => {
+export const extract = async (fileName: string, pages: number[], outputFilename?: string) => {
   const response = await apiClient.post(
     `${API.pdf}/${fileName}${API.extract}`,
-    { pages },
+    { pages, filename: outputFilename },
     { responseType: "blob" }
   );
 

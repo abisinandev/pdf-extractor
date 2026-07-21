@@ -43,7 +43,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onUploadSuccess }) => {
 
   const validateAndUpload = (file: File) => {
     console.log("validateAndUpload: ", file);
-    
+
     if (file.type !== "application/pdf" && !file.name.endsWith(".pdf")) {
       setError("Only PDF files are allowed.");
       return;
@@ -66,9 +66,9 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onUploadSuccess }) => {
       });
 
       setUploadProgress(100);
-      if (data.success && data.fileId) {
-        setSuccess(`Successfully uploaded "${file.name}"!`);
-        onUploadSuccess(data.fileId, file);
+      if (data.success && data.data?.storage_path) {
+        setSuccess(`Successfully uploaded "${file.name}"`);
+        onUploadSuccess(data.data.storage_path, file);
       } else {
         setError(data.message || "Upload succeeded but no file ID was returned.");
       }
@@ -76,7 +76,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onUploadSuccess }) => {
       if (axios.isAxiosError(err)) {
         setError(
           err.response?.data?.message ||
-            "An error occurred during upload. Make sure the backend is running."
+          "An error occurred during upload. Make sure the backend is running."
         );
       } else {
         setError("Unexpected error during upload.");
@@ -96,10 +96,10 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onUploadSuccess }) => {
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={triggerFileSelect}
-        className={`relative group cursor-pointer border-2 border-dashed rounded-2xl p-10 text-center transition-all duration-300 bg-white shadow-sm
+        className={`relative group cursor-pointer border-2 border-dashed rounded-2xl p-10 text-center transition-all duration-300 bg-theme-card shadow-sm
           ${isDragging
-            ? "border-red-500 bg-red-50/50 scale-[1.01] ring-4 ring-red-500/10"
-            : "border-slate-300 hover:border-red-400 hover:shadow-md"
+            ? "border-theme-primary bg-theme-primary/10 scale-[1.01] ring-4 ring-theme-primary/20"
+            : "border-theme-border hover:border-theme-primary hover:shadow-md"
           }
         `}
       >
@@ -112,39 +112,39 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onUploadSuccess }) => {
         />
 
         <div className="flex flex-col items-center justify-center space-y-4">
-          <div className="p-4 rounded-full bg-slate-50 group-hover:bg-red-50 transition-colors duration-300">
-            <UploadCloud className="h-10 w-10 text-slate-400 group-hover:text-red-500 transition-colors duration-300" />
+          <div className="p-4 rounded-full bg-theme-surface group-hover:bg-theme-primary/10 transition-colors duration-300">
+            <UploadCloud className="h-10 w-10 text-theme-text-mut group-hover:text-theme-primary transition-colors duration-300" />
           </div>
 
           <div>
-            <p className="text-lg font-semibold text-slate-700">
+            <p className="text-lg font-semibold text-theme-text">
               Drag & Drop PDF here
             </p>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-sm text-theme-text-sec mt-1">
               or{" "}
-              <span className="text-red-600 font-medium group-hover:underline">
+              <span className="text-theme-primary font-medium group-hover:underline">
                 browse files
               </span>{" "}
               from your device
             </p>
           </div>
 
-          <div className="text-xs text-slate-500 bg-slate-100 px-3 py-1 rounded-full font-medium">
+          <div className="text-xs text-theme-text-sec bg-theme-surface px-3 py-1 rounded-full font-medium">
             PDF files only · Max 10MB
           </div>
         </div>
 
         {/* Uploading overlay */}
         {uploading && (
-          <div className="absolute inset-0 bg-white/95 rounded-2xl flex flex-col items-center justify-center p-6 space-y-4 z-10">
-            <FileText className="h-10 w-10 text-red-500 animate-bounce" />
-            <div className="w-64 bg-slate-100 h-2 rounded-full overflow-hidden">
+          <div className="absolute inset-0 bg-theme-bg/95 rounded-2xl flex flex-col items-center justify-center p-6 space-y-4 z-10">
+            <FileText className="h-10 w-10 text-theme-primary animate-bounce" />
+            <div className="w-64 bg-theme-surface h-2 rounded-full overflow-hidden border border-theme-border">
               <div
-                className="bg-red-500 h-full rounded-full transition-all duration-300"
+                className="bg-theme-primary h-full rounded-full transition-all duration-300"
                 style={{ width: `${uploadProgress}%` }}
               />
             </div>
-            <p className="text-sm text-slate-600 font-medium animate-pulse">
+            <p className="text-sm text-theme-text-sec font-medium animate-pulse">
               Uploading & parsing PDF… {uploadProgress}%
             </p>
           </div>
@@ -152,14 +152,14 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onUploadSuccess }) => {
       </div>
 
       {error && (
-        <div className="mt-4 flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm font-medium shadow-sm">
+        <div className="mt-4 flex items-center gap-2 p-3 bg-red-900/20 border border-red-800/50 rounded-lg text-red-400 text-sm font-medium shadow-sm">
           <AlertCircle className="h-5 w-5 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {success && (
-        <div className="mt-4 flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-sm font-medium shadow-sm">
+        <div className="mt-4 flex items-center gap-2 p-3 bg-green-900/20 border border-green-800/50 rounded-lg text-green-400 text-sm font-medium shadow-sm">
           <CheckCircle className="h-5 w-5 shrink-0" />
           <span>{success}</span>
         </div>

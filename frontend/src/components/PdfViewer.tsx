@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Document, Page, pdfjs } from 'react-pdf';
-import { ChevronLeft, ChevronRight, Loader2, Maximize2, Minimize2, CheckSquare, Square, Download } from 'lucide-react';
+import { pdfjs } from 'react-pdf';
 import { extract } from '../services/api.service';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
+
+import { PdfPreview } from './PdfPreview';
+import { PdfSidebar } from './PdfSidebar';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -16,50 +18,27 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ file, fileId }) => {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [scale, setScale] = useState<number>(1.0);
-  // const [selectedPages, setSelectedPages] = useState<Set<number>>(new Set());
   const [selectedPages, setSelectedPages] = useState<number[]>([]);
+
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractedPdfUrl, setExtractedPdfUrl] = useState<string | null>(null);
   const [extractSuccess, setExtractSuccess] = useState<boolean>(false);
-  const [pageInput, setPageInput] = useState("");
+  const [extractedPdfBlob, setExtractedPdfBlob] = useState<Blob | null>(null);
+  const [viewingExtracted, setViewingExtracted] = useState<boolean>(false);
+  const [outputFilename, setOutputFilename] = useState<string>(
+    file ? file.name.replace(/\.pdf$/i, '') : 'extracted'
+  );
+  const [sortPages, setSortPages] = useState<boolean>(false);
 
   if (!file) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center border border-slate-200 rounded-xl bg-white shadow-sm min-h-[500px] h-full">
-        <p className="text-slate-500 font-medium">
+      <div className="flex flex-col items-center justify-center p-12 text-center border border-theme-border rounded-xl bg-theme-card shadow-sm min-h-[500px] h-full">
+        <p className="text-theme-text-sec font-medium">
           Upload a PDF to view it here
         </p>
       </div>
     );
   }
-
-  const goToPage = () => {
-    const page = Number(pageInput);
-
-    if (Number.isNaN(page)) return;
-
-    if (page < 1 || page > numPages) {
-      alert(`Enter a page between 1 and ${numPages}`);
-      return;
-    }
-
-    setPageNumber(page);
-  };
-
-  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
-    setNumPages(numPages);
-    setPageNumber(1);
-    setSelectedPages([]);
-  };
-
-  const changePage = (offset: number) => {
-    setPageNumber((prevPageNumber) =>
-      Math.min(Math.max(1, prevPageNumber + offset), numPages)
-    );
-  };
-
-  const previousPage = () => changePage(-1);
-  const nextPage = () => changePage(1);
 
   const togglePageSelection = () => {
     setExtractSuccess(false);
@@ -67,15 +46,24 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ file, fileId }) => {
     if (extractedPdfUrl) {
       URL.revokeObjectURL(extractedPdfUrl);
       setExtractedPdfUrl(null);
+      setExtractedPdfBlob(null);
+      setViewingExtracted(false);
     }
 
     setSelectedPages((prev) => {
       if (prev.includes(pageNumber)) {
-        return prev.filter((page) => page !== pageNumber);
+        return prev.filter((p) => p !== pageNumber);
       }
-
       return [...prev, pageNumber];
     });
+  };
+
+  const removePage = (pageNum: number) => {
+    setSelectedPages((prev) => prev.filter((p) => p !== pageNum));
+  };
+
+  const reorderPages = (pages: number[]) => {
+    setSelectedPages(pages);
   };
 
   const isCurrentPageSelected = selectedPages.includes(pageNumber);
@@ -87,13 +75,20 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ file, fileId }) => {
       setIsExtracting(true);
       setExtractSuccess(false);
 
-      const pagesToExtract = [...selectedPages];
-      const pdfBlob = await extract(fileId, pagesToExtract);
+      const pagesToExtract = sortPages
+        ? [...selectedPages].sort((a, b) => a - b)
+        : [...selectedPages];
+      const pdfBlob = await extract(fileId, pagesToExtract, outputFilename);
 
       const url = URL.createObjectURL(pdfBlob);
 
+      setExtractedPdfBlob(pdfBlob);
       setExtractedPdfUrl(url);
       setExtractSuccess(true);
+
+      // Automatically switch to view the extracted PDF
+      setViewingExtracted(true);
+      setSelectedPages([]);
 
     } catch (error) {
       console.error("Failed to extract PDF pages:", error);
@@ -107,165 +102,65 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ file, fileId }) => {
     if (!extractedPdfUrl || !file) return;
     const link = document.createElement('a');
     link.href = extractedPdfUrl;
-    link.download = `extracted_${file.name}`;
+    link.download = `${outputFilename || 'extracted'}.pdf`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
+  let currentPreviewFile: File | string | null = file;
+  if (viewingExtracted && extractedPdfUrl) {
+    currentPreviewFile = extractedPdfUrl;
+  }
+
   return (
-    <div className="flex flex-col h-full bg-slate-50 overflow-hidden w-full relative">
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border-b border-slate-200 bg-white shadow-sm shrink-0 gap-3">
-        {/* Navigation & Selection */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 bg-slate-50 rounded-lg p-1 border border-slate-200">
-            <button
-              onClick={previousPage}
-              disabled={pageNumber <= 1}
-              className="p-1.5 rounded-md hover:bg-white hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              <ChevronLeft className="w-4 h-4 text-slate-700" />
-            </button>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={1}
-                max={numPages}
-                value={pageInput}
-                onChange={(e) => setPageInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    goToPage();
-                  }
-                }}
-                className="w-16 text-center border rounded px-2 py-1 text-sm"
-              />
-
-              <span className="text-xs font-semibold">
-                {pageNumber} / {numPages || "-"}
-              </span>
-
+    <div className="flex h-full w-full bg-theme-bg overflow-hidden relative border border-theme-border rounded-xl shadow-sm">
+      {/* Main Preview Area */}
+      <div className="flex-1 overflow-hidden h-full">
+        <div className="h-full flex flex-col">
+          {viewingExtracted && (
+            <div className="bg-theme-primary/10 border-b border-theme-primary/30 p-2 flex items-center justify-between text-theme-primary text-sm font-medium">
+              <span>Previewing Extracted PDF</span>
               <button
-                onClick={goToPage}
-                className="px-2 py-1 rounded bg-red-600 text-white text-xs"
+                onClick={() => setViewingExtracted(false)}
+                className="hover:underline text-xs"
               >
-                Go
-              </button>
-            </div>
-
-            <button
-              onClick={nextPage}
-              disabled={pageNumber >= numPages}
-              className="p-1.5 rounded-md hover:bg-white hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              <ChevronRight className="w-4 h-4 text-slate-700" />
-            </button>
-          </div>
-
-          <button
-            onClick={togglePageSelection}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${isCurrentPageSelected
-              ? 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100'
-              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-              }`}
-          >
-            {isCurrentPageSelected ? (
-              <><CheckSquare className="w-4 h-4" /> Selected</>
-            ) : (
-              <><Square className="w-4 h-4" /> Select Page</>
-            )}
-          </button>
-        </div>
-
-        {/* Action & Zoom */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 bg-slate-50 rounded-lg p-1 border border-slate-200">
-            <button
-              onClick={() => setScale(s => Math.max(0.5, s - 0.2))}
-              className="p-1.5 rounded-md hover:bg-white hover:shadow-sm transition-all"
-              title="Zoom Out"
-            >
-              <Minimize2 className="w-4 h-4 text-slate-700" />
-            </button>
-            <span className="text-xs font-semibold text-slate-600 w-10 text-center">
-              {Math.round(scale * 100)}%
-            </span>
-            <button
-              onClick={() => setScale(s => Math.min(3.0, s + 0.2))}
-              className="p-1.5 rounded-md hover:bg-white hover:shadow-sm transition-all"
-              title="Zoom In"
-            >
-              <Maximize2 className="w-4 h-4 text-slate-700" />
-            </button>
-          </div>
-
-          {selectedPages.length > 0 && !extractSuccess && (
-            <button
-              onClick={handleExtract}
-              disabled={isExtracting}
-              className="flex items-center gap-2 px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-70 shadow-sm"
-            >
-              {isExtracting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <CheckSquare className="w-4 h-4" />
-              )}
-              Extract {selectedPages.length} {selectedPages.length === 1 ? 'Page' : 'Pages'}
-            </button>
-          )}
-
-          {extractSuccess && extractedPdfUrl && (
-            <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-300">
-              <span className="text-green-600 text-sm font-medium flex items-center gap-1.5 px-2">
-                <CheckSquare className="w-4 h-4" /> Extracted successfully!
-              </span>
-              <button
-                onClick={handleDownload}
-                className="flex items-center gap-2 px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
-              >
-                <Download className="w-4 h-4" />
-                Download PDF
+                Back to Original
               </button>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Viewer Area */}
-      <div className="flex-1 overflow-auto bg-slate-100/50 p-2 sm:p-4 flex justify-center w-full relative">
-        <Document
-          file={file}
-          onLoadSuccess={onDocumentLoadSuccess}
-          loading={
-            <div className="flex flex-col items-center justify-center h-64 w-full">
-              <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
-              <p className="mt-3 text-sm font-medium text-slate-600">Loading document...</p>
-            </div>
-          }
-          error={
-            <div className="text-red-600 bg-red-50 p-4 rounded-lg text-sm font-medium border border-red-200 shadow-sm">
-              Failed to load PDF file.
-            </div>
-          }
-          className="pdf-document"
-        >
-          <Page
+          <PdfPreview
+            file={currentPreviewFile}
             pageNumber={pageNumber}
+            numPages={numPages}
             scale={scale}
-            renderTextLayer={true}
-            renderAnnotationLayer={true}
-            className={`rounded shadow-md bg-white border-2 transition-colors duration-200 ${isCurrentPageSelected ? 'border-red-500 ring-4 ring-red-500/10' : 'border-transparent'
-              }`}
-            loading={
-              <div className="flex items-center justify-center h-64 w-full">
-                <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
-              </div>
-            }
+            isCurrentPageSelected={isCurrentPageSelected}
+            onPageChange={setPageNumber}
+            onNumPagesChange={setNumPages}
+            onScaleChange={setScale}
+            onToggleSelection={togglePageSelection}
+            viewingExtracted={viewingExtracted}
           />
-        </Document>
+        </div>
       </div>
+
+      {/* Sidebar Area */}
+      <PdfSidebar
+        file={file}
+        selectedPages={selectedPages}
+        onRemovePage={removePage}
+        onReorder={reorderPages}
+        onPageClick={(page) => setPageNumber(page)}
+        onExtract={handleExtract}
+        isExtracting={isExtracting}
+        extractSuccess={extractSuccess}
+        onDownload={handleDownload}
+        extractedPdfUrl={extractedPdfUrl}
+        outputFilename={outputFilename}
+        onFilenameChange={setOutputFilename}
+        sortPages={sortPages}
+        onToggleSort={() => setSortPages((prev) => !prev)}
+      />
     </div>
   );
 };

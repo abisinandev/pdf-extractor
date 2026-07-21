@@ -1,9 +1,7 @@
 import { PDFDocument } from "pdf-lib";
-import fs from 'fs/promises';
 
-export const extractedFile = async (filePath: string, pages: []) => {
-    const pdfFile = await fs.readFile(filePath);
-    const sourcePdf = await PDFDocument.load(pdfFile);
+export const extractedFile = async (data: Buffer, pages: []) => {
+    const sourcePdf = await PDFDocument.load(data);
 
     const newPdf = await PDFDocument.create();//create new empty pdf
 
@@ -20,6 +18,6 @@ export const extractedFile = async (filePath: string, pages: []) => {
 
     //generate pdf bytes
     const pdfBytes = await newPdf.save();
-    
+
     return pdfBytes
 }

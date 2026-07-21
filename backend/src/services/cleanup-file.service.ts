@@ -1,26 +1,20 @@
-import fs from "fs/promises";
-import path from "path";
 import { IUploadCleanupService } from "./interfaces/cleanup-upload-service.interface";
+import { IStorageProvider } from "../provider/interface/storage-provider.interface";
 
+/**
+ * Cleanup service
+ * - Responsible for when running jobs, 
+ *  it will remove the previous add documents from supbase
+ */
 export class UploadCleanupService implements IUploadCleanupService {
-    private readonly uploadDir: string;
-
-    constructor() {
-        this.uploadDir = path.join(process.cwd(), "uploads");
-    }
+    constructor(private readonly storageProvider: IStorageProvider) {}
 
     public async cleanupUploads(): Promise<void> {
         try {
-            const files = await fs.readdir(this.uploadDir);
-
-            for (const file of files) {
-                const filePath = path.join(this.uploadDir, file);
-                await fs.unlink(filePath);
-            }
-
-            console.log("Uploads cleaned successfully");
+            await this.storageProvider.deleteAll();
+            console.log("Supabase cleanup completed successfully");
         } catch (error) {
-            console.error("Cleanup failed:", error);
+            console.error("Supabase cleanup failed:", error);
         }
     }
 }
